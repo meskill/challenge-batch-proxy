@@ -1,0 +1,27 @@
+meta {
+  name: health
+  type: http
+  seq: 1
+  tags: [
+    smoke
+  ]
+}
+
+get {
+  url: {{app}}/health
+  body: none
+  auth: inherit
+}
+
+tests {
+  test("success response", function () {
+    expect(res.getStatus()).to.equal(200);
+    expect(res.getBody()).to.eql({
+      status: "ok",
+    });
+  });
+}
+
+settings {
+  encodeUrl: true
+}
