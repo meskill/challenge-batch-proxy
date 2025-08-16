@@ -1,0 +1,23 @@
+[package]
+name = "batch"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+
+[dependencies]
+tracing = "0.1.41"
+dashmap = "6.1.0"
+tokio = { version = "1.47.1", features = [
+    "rt-multi-thread",
+    "macros",
+    "signal",
+    "sync",
+    "time",
+] }
+
+[dev-dependencies]
+mockall = "0.13.1"
+tokio-test = "0.4.4"
+futures = "0.3.31"
+test-log = { version = "0.2.18", default-features = false, features = ["trace"] }
