@@ -1,7 +1,7 @@
-use axum::Json;
 use axum::http::StatusCode;
-use axum::response::{IntoResponse, Response};
 use serde::{Deserialize, Serialize};
+
+use crate::http::error::HttpError;
 
 #[derive(Debug, Deserialize, Serialize)]
 pub struct UpstreamErrorResponse {
@@ -66,9 +66,9 @@ impl EmbedError {
     }
 }
 
-impl IntoResponse for EmbedError {
-    fn into_response(self) -> Response {
-        let status = match self {
+impl HttpError for EmbedError {
+    fn status(&self) -> StatusCode {
+        match self {
             EmbedError::HttpRequest(_) => StatusCode::BAD_GATEWAY,
             EmbedError::BatchSize { .. } => StatusCode::PAYLOAD_TOO_LARGE,
             EmbedError::Tokenization { .. } => StatusCode::UNPROCESSABLE_ENTITY,
@@ -77,19 +77,6 @@ impl IntoResponse for EmbedError {
             EmbedError::Unknown { .. } => StatusCode::BAD_GATEWAY,
             EmbedError::ParseError(_) => StatusCode::BAD_GATEWAY,
             EmbedError::EmptyResponse => StatusCode::BAD_GATEWAY,
-        };
-
-        #[derive(Serialize)]
-        struct ErrorResponse {
-            message: String,
-            name: &'static str,
         }
-
-        let response = ErrorResponse {
-            message: self.to_string(),
-            name: self.into(),
-        };
-
-        (status, Json(response)).into_response()
     }
 }

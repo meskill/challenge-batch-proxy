@@ -1,9 +1,10 @@
 use crate::embedding::{
     EmbedError, EmbedUpstreamRequest, EmbedUpstreamResponse, UpstreamErrorResponse,
 };
+use crate::http::error::ApiError;
+use crate::http::extractors::Json;
 use crate::state::AppState;
 use crate::types::embedding::Embedding;
-use axum::Json;
 use axum::extract::State;
 use serde::{Deserialize, Serialize};
 
@@ -19,7 +20,14 @@ pub struct EmbedResponse(Embedding);
 pub async fn embed(
     State(state): State<AppState>,
     Json(payload): Json<EmbedRequest>,
-) -> Result<Json<EmbedResponse>, EmbedError> {
+) -> Result<Json<EmbedResponse>, ApiError<EmbedError>> {
+    match handler(state, payload).await {
+        Ok(response) => Ok(Json(response)),
+        Err(error) => Err(ApiError::from(error)),
+    }
+}
+
+async fn handler(state: AppState, payload: EmbedRequest) -> Result<EmbedResponse, EmbedError> {
     let upstream_request = EmbedUpstreamRequest {
         inputs: payload.input,
     };
@@ -55,5 +63,5 @@ pub async fn embed(
     }
 
     // TODO: use the first embedding only for now
-    Ok(Json(EmbedResponse(response.0.remove(0))))
+    Ok(EmbedResponse(response.0.remove(0)))
 }
