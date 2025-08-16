@@ -1,6 +1,5 @@
 use crate::state::AppState;
-use axum::{Router, extract::State, http::StatusCode, response::IntoResponse, routing::get};
-use serde::Serialize;
+use axum::{Router, routing::get};
 use tower_http::trace::TraceLayer;
 
 pub fn app_router(state: AppState) -> Router {

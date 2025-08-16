@@ -2,25 +2,56 @@
 
 A minimal Axum-based HTTP service scaffold with health endpoints and environment-driven configuration.
 
-## Features
-- Axum 0.7 server
-- Health and readiness endpoints: `/health`, `/ready`
-- BIND_HOST environment variable (defaults to `0.0.0.0:8080`)
-- Structured logs via tracing with env-filter
-- Graceful shutdown on Ctrl+C and SIGTERM (unix)
+## Environment Configuration
+
+Copy the example environment file and modify as needed:
+
+```sh
+cp .env.example .env
+```
+
+The application will automatically load environment variables from the `.env` file if it exists.
+
+## Development
+
+This project uses cargo-make for task automation. Install it if you haven't already:
+
+```sh
+cargo install cargo-make
+```
+
+Available tasks:
+
+```sh
+# Show all available tasks
+cargo make help
+
+# Development workflows
+cargo make validate     # format + lint + test
+cargo make watch        # watch and run the application
+
+# Individual tasks
+cargo make build        # build the project
+cargo make test         # run tests
+cargo make fmt          # format code
+cargo make clippy       # run clippy lints with fixes
+cargo make lint         # run linting (clippy + fmt)
+cargo make run          # run the application
+
+# CI workflow
+cargo make ci           # audit + format-check + lint-check + test
+```
 
 ## Run
 
 ```sh
-# optional: override bind address
-BIND_HOST="127.0.0.1:8080" cargo run
+# Using cargo-make
+cargo make run
+
+# With custom bind address (override .env)
+BIND_HOST="127.0.0.1:8080" cargo make run
 ```
 
 Then open:
-- http://127.0.0.1:8080/health
-- http://127.0.0.1:8080/ready
-
-## Next steps
-- Add domain routes under `routes.rs`
-- Introduce state (DB pools, clients) via `Router::with_state`
-- Expand readiness check to verify dependencies
+- http://127.0.0.1:3000/health
+- http://127.0.0.1:3000/ready

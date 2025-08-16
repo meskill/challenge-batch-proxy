@@ -1,5 +1,3 @@
-use std::future::Ready;
-
 use crate::state::AppState;
 use serde::Serialize;
 
@@ -40,9 +38,8 @@ impl IntoResponse for ReadyResponse<'_> {
     }
 }
 
-
-pub(crate) async fn ready(
-    State(state): State<AppState>,
-) -> ReadyResponse<'static> {
-    ReadyResponse::NotReady { details: "not ready yet" }
+pub(crate) async fn ready(State(state): State<AppState>) -> ReadyResponse<'static> {
+    ReadyResponse::NotReady {
+        details: "not ready yet",
+    }
 }

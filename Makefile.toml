@@ -1,0 +1,183 @@
+[env]
+CARGO_MAKE_EXTEND_WORKSPACE_MAKEFILE = true
+
+# ============================================================================
+# DEFAULT & HELP TASKS
+# ============================================================================
+
+# Default task
+[tasks.default]
+alias = "help"
+
+# Help task
+[tasks.help]
+description = "Show available tasks"
+script = '''
+echo "Available tasks:"
+echo ""
+echo "Build & Run:"
+echo "  check         - Run cargo check"
+echo "  build         - Build the project"
+echo "  build-release - Build the project in release mode"
+echo "  run           - Run the application"
+echo "  watch         - Watch files and run the application"
+echo ""
+echo "Code Quality:"
+echo "  fmt          - Format code with rustfmt"
+echo "  fmt-check    - Check code formatting"
+echo "  clippy       - Run clippy lints with automatic fixes"
+echo "  clippy-check - Run clippy lints (check only)"
+echo "  lint         - Run linting (clippy + fmt)"
+echo "  lint-check   - Check linting (clippy-check + fmt-check)"
+echo ""
+echo "Testing:"
+echo "  test         - Run all tests"
+echo "  test-watch   - Run tests in watch mode"
+echo "  api-test     - Run Bruno API tests (requires app to be running)"
+echo ""
+echo "Workflows:"
+echo "  validate     - Validate project (fmt + lint + test)"
+echo "  ci           - CI workflow (audit + fmt-check + lint-check + test)"
+echo ""
+echo "Utilities:"
+echo "  clean        - Clean build artifacts"
+echo "  audit        - Run security audit"
+'''
+
+# ============================================================================
+# BUILD & RUN TASKS
+# ============================================================================
+
+
+# Check task
+[tasks.check]
+description = "Run cargo check"
+command = "cargo"
+args = ["check"]
+
+
+# Run tasks
+[tasks.run]
+description = "Run the application"
+command = "cargo"
+args = ["run"]
+
+# Watch and run
+[tasks.watch]
+description = "Watch files and run the application"
+install_crate = "cargo-watch"
+command = "cargo"
+args = ["watch", "-x", "run"]
+
+# Build tasks
+[tasks.build]
+description = "Build the project"
+command = "cargo"
+args = ["build"]
+
+[tasks.build-release]
+description = "Build the project in release mode"
+command = "cargo"
+args = ["build", "--release"]
+
+# ============================================================================
+# TESTING TASKS
+# ============================================================================
+
+# Test tasks
+[tasks.test]
+description = "Run all tests"
+command = "cargo"
+args = ["test"]
+
+[tasks.test-watch]
+description = "Run tests in watch mode"
+install_crate = "cargo-watch"
+command = "cargo"
+args = ["watch", "-x", "test"]
+
+# ============================================================================
+# CODE QUALITY TASKS
+# ============================================================================
+
+# Linting tasks - clippy with conditional fixes
+[tasks.clippy]
+description = "Run clippy lints with automatic fixes"
+command = "cargo"
+env = { FIX = "--fix" }
+args = [
+    "clippy",
+    "--all-targets",
+    "--all-features",
+    "@@remove-empty(FIX)",
+    "--",
+    "-D",
+    "warnings",
+]
+
+[tasks.clippy-check]
+description = "Run clippy lints (check only, no fixes)"
+extend = "clippy"
+env = { FIX = "" }
+
+# Formatting tasks
+[tasks.fmt]
+description = "Format code with rustfmt"
+command = "cargo"
+args = ["fmt"]
+
+[tasks.fmt-check]
+description = "Check code formatting (no changes)"
+command = "cargo"
+args = ["fmt", "--", "--check"]
+
+# Combined linting tasks
+[tasks.lint]
+description = "Run linting (clippy with fixes + fmt)"
+dependencies = ["clippy", "fmt"]
+
+[tasks.lint-check]
+description = "Check code formatting and lints (no changes)"
+dependencies = ["clippy-check", "fmt-check"]
+
+# ============================================================================
+# UTILITY TASKS
+# ============================================================================
+
+# Clean task
+[tasks.clean]
+description = "Clean build artifacts"
+command = "cargo"
+args = ["clean"]
+
+# Security audit
+[tasks.audit]
+description = "Run security audit"
+install_crate = "cargo-audit"
+command = "cargo"
+args = ["audit"]
+
+# ============================================================================
+# WORKFLOW TASKS
+# ============================================================================
+
+# Development workflow
+[tasks.validate]
+description = "Validate project (format + lint + test)"
+dependencies = ["fmt", "lint", "test"]
+
+# CI workflow
+[tasks.ci]
+description = "CI workflow (audit + fmt-check + lint-check + test)"
+dependencies = ["audit", "fmt-check", "lint-check", "test"]
+
+# ============================================================================
+# API TESTING
+# ============================================================================
+
+# Bruno API tests - requires the application to be running
+[tasks.api-test]
+description = "Run Bruno API tests. #Note: the app should be running"
+cwd = "tests-bruno"
+command = "bru"
+args = ["run", "--env", "dotenv"]
