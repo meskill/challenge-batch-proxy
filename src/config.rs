@@ -1,3 +1,4 @@
+use crate::embedding::EmbeddingConfig;
 use crate::error::InitializationError;
 use envconfig::Envconfig;
 use std::net::SocketAddr;
@@ -6,6 +7,8 @@ use std::net::SocketAddr;
 pub struct AppConfig {
     #[envconfig(from = "BIND_HOST", default = "0.0.0.0:3000")]
     pub bind_host: String,
+    #[envconfig(nested)]
+    pub embedding: EmbeddingConfig,
 }
 
 impl AppConfig {

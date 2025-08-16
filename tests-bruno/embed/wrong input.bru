@@ -1,0 +1,21 @@
+meta {
+  name: wrong input
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{app}}/embed
+  body: json
+  auth: inherit
+}
+
+body:json {
+  {
+    "inpute": "Where am i?"
+  }
+}
+
+settings {
+  encodeUrl: true
+}

@@ -39,7 +39,26 @@ impl IntoResponse for ReadyResponse<'_> {
 }
 
 pub(crate) async fn ready(State(state): State<AppState>) -> ReadyResponse<'static> {
-    ReadyResponse::NotReady {
-        details: "not ready yet",
+    // Check if embedding upstream service is healthy
+    match state.embedding.upstream.health_check().await {
+        Ok(response) => {
+            if response.status().is_success() {
+                ReadyResponse::Ready
+            } else {
+                tracing::warn!(
+                    status = %response.status(),
+                    "Embedding service health check failed"
+                );
+                ReadyResponse::NotReady {
+                    details: "embedding service unhealthy",
+                }
+            }
+        }
+        Err(err) => {
+            tracing::warn!(?err, "Failed to connect to embedding service");
+            ReadyResponse::NotReady {
+                details: "embedding service unavailable",
+            }
+        }
     }
 }

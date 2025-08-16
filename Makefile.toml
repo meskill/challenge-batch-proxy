@@ -45,6 +45,15 @@ echo "  audit        - Run security audit"
 '''
 
 # ============================================================================
+# HELPERS
+# ============================================================================
+
+[tasks.console-reset]
+description = "Reset the console"
+command = "reset"
+
+
+# ============================================================================
 # BUILD & RUN TASKS
 # ============================================================================
 
@@ -54,6 +63,7 @@ echo "  audit        - Run security audit"
 description = "Run cargo check"
 command = "cargo"
 args = ["check"]
+dependencies = ["console-reset"]
 
 
 # Run tasks
@@ -61,6 +71,7 @@ args = ["check"]
 description = "Run the application"
 command = "cargo"
 args = ["run"]
+dependencies = ["console-reset"]
 
 # Watch and run
 [tasks.watch]
@@ -89,6 +100,7 @@ args = ["build", "--release"]
 description = "Run all tests"
 command = "cargo"
 args = ["test"]
+dependencies = ["console-reset"]
 
 [tasks.test-watch]
 description = "Run tests in watch mode"
@@ -181,3 +193,8 @@ description = "Run Bruno API tests. #Note: the app should be running"
 cwd = "tests-bruno"
 command = "bru"
 args = ["run", "--env", "dotenv"]
+
+[tasks.run-external]
+description = "Run external service to which proxy to"
+env = { volume = "${PWD}/.huggingface" }
+script = "docker run --rm -it -v ${volume}:/data -p 8080:80 --pull always ghcr.io/huggingface/text-embeddings-inference:cpu-latest --model-id nomic-ai/nomic-embed-text-v1.5"

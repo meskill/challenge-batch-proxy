@@ -1,8 +1,10 @@
 mod config;
+mod embedding;
 mod error;
-mod routes;
+mod http;
 mod state;
 mod telemetry;
+mod types;
 
 use config::AppConfig;
 use error::InitializationError;
@@ -27,18 +29,15 @@ async fn main() {
 
 async fn run_app() -> Result<(), InitializationError> {
     let cfg = AppConfig::load()?;
-    let state = AppState::new();
-    let app = routes::app_router(state);
-
     let addr: SocketAddr = cfg.bind_addr()?;
+    let state = AppState::new(cfg);
+    let app = http::app_router(state);
+
     tracing::warn!(%addr, "starting HTTP server");
 
     let listener = tokio::net::TcpListener::bind(addr).await?;
     let local_addr = listener.local_addr()?;
     tracing::warn!(%local_addr, "listening");
-
-    let app_state = AppState::new();
-    let app = routes::app_router(app_state);
 
     axum::serve(listener, app)
         .with_graceful_shutdown(shutdown_signal())

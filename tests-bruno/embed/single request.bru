@@ -1,0 +1,31 @@
+meta {
+  name: single request
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{app}}/embed
+  body: json
+  auth: inherit
+}
+
+body:json {
+  {
+    "input": "Where am i?"
+  }
+}
+
+settings {
+  encodeUrl: true
+}
+
+tests {
+  test("success response", function () {
+    expect(res.getStatus()).to.equal(200);
+    expect(res.getBody()).to.be.an('array');
+    expect(res.getBody()).to.satisfy(function(arr) {
+      return arr.every(item => typeof item === 'number' && !isNaN(item));
+    });
+  });
+}
