@@ -75,13 +75,8 @@ impl<T: Batchable> Batcher<T, Uninitialized<T>> {
 
             loop {
                 select! {
-                    _ = interval.tick() => {
+                    _ = interval.tick(), if !inputs.is_empty() => {
                         accept_new = true;
-
-                        if inputs.is_empty() {
-                            tracing::trace!("No inputs received, resetting sleep timer");
-                            continue;
-                        }
 
                         tracing::debug!("Processing batch of {} inputs", inputs.len());
 

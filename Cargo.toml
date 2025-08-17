@@ -29,6 +29,7 @@ derive_more = { version = "2.0.1", features = ["display", "error", "from"] }
 dotenvy = "0.15.7"
 reqwest = { version = "0.12.23", features = ["json"] }
 strum = { version = "0.27.2", features = ["derive"] }
+batch = { path = "./crates/batch" }
 
 [dev-dependencies]
 tower = "0.5.2"

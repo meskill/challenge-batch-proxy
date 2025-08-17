@@ -1,6 +1,8 @@
 use crate::embedding::config::EmbeddingConfig;
+use crate::embedding::{EmbedError, UpstreamErrorResponse};
 use crate::http::HttpClient;
 use crate::types::embedding::Embedding;
+use crate::types::truncation::TruncationDirection;
 use reqwest::{Error, Response};
 use serde::{Deserialize, Serialize};
 
@@ -10,15 +12,9 @@ pub struct Upstream {
     http_client: HttpClient,
 }
 
-#[derive(Debug, Deserialize, Serialize)]
-pub enum TruncationDirection {
-    Left,
-    Right,
-}
-
 #[derive(Debug, Serialize)]
 pub struct EmbedUpstreamRequest {
-    pub inputs: String,
+    pub inputs: Vec<String>,
     pub normalize: bool,
     pub prompt_name: Option<String>,
     pub truncate: bool,
@@ -41,9 +37,42 @@ impl Upstream {
         self.execute_get(&url).await
     }
 
-    pub async fn embed(&self, request: &EmbedUpstreamRequest) -> Result<Response, Error> {
+    pub async fn embed(
+        &self,
+        request: &EmbedUpstreamRequest,
+    ) -> Result<EmbedUpstreamResponse, EmbedError> {
         let url = self.build_url("/embed");
-        self.execute_post(&url, request).await
+        let response = self.execute_post(&url, request).await?;
+
+        // Handle upstream errors
+        if !response.status().is_success() {
+            let status = response.status();
+            tracing::error!(%status, "Text-embedding service returned error status");
+
+            // Try to parse error response
+            match response.json::<UpstreamErrorResponse>().await {
+                Ok(error_response) => {
+                    return Err(EmbedError::from_upstream_response(status, error_response));
+                }
+                Err(_) => {
+                    // If we can't parse the error response, create a generic error
+                    return Err(EmbedError::Unknown {
+                        status_code: status.as_u16(),
+                        message: format!("Upstream service error: {}", status),
+                    });
+                }
+            }
+        }
+
+        // Parse successful response
+        let response: EmbedUpstreamResponse = response.json().await?;
+
+        // Check if response contains embeddings
+        if response.0.is_empty() {
+            return Err(EmbedError::EmptyResponse);
+        }
+
+        Ok(response)
     }
 
     // Private helper methods
