@@ -1,0 +1,70 @@
+[
+  { "input": "hi", "normalize": true },
+
+  { "input": "what is an embedding in ML?", "normalize": true },
+
+  { "input": "Привет! Это короткий русский текст.", "normalize": true },
+
+  { "input": "Cześć! Jak działa automatyczne batchowanie?", "normalize": true },
+
+  { "input": "SELECT id, name FROM users WHERE email LIKE '%@example.com' LIMIT 10;", "normalize": true },
+
+  { "input": "JSON example: {\"name\":\"Alice\",\"age\":30} and some punctuation !!! ??? ..", "normalize": true },
+
+  { "input": "Numbers 1234567890 and symbols #$%^&*()", "normalize": true },
+
+  { "input": "Emoji test 😀👍🔥 — mixed with text", "normalize": true },
+
+  {
+    "input_template": { "base": "short token ", "repeat": 500 },
+    "normalize": true,
+    "truncate": true,
+    "truncation_direction": "Right"
+  },
+
+  {
+    "input_template": { "base": "short token ", "repeat": 500 },
+    "normalize": true,
+    "truncate": true,
+    "truncation_direction": "Left"
+  },
+
+  { "input": "This is one request with two inputs.", "normalize": true },
+  { "input": "To verify multi-input handling.", "normalize": true },
+
+  { "input": "Small batch request with three items.", "normalize": false },
+  { "input": "Second item here.", "normalize": false },
+  { "input": "Third item here.", "normalize": false },
+
+  {
+    "input_template": { "base": "lorem ipsum dolor sit amet, ", "repeat": 200 },
+    "normalize": true,
+    "truncate": true,
+    "truncation_direction": "Right"
+  },
+
+  {
+    "input_template": { "base": "END-IMPORTANT ", "repeat": 50 },
+    "normalize": true,
+    "truncate": true,
+    "truncation_direction": "Left"
+  },
+
+  {
+    "input": "A medium-length paragraph. More text to vary length and content across calls. Repeating phrases can affect tokenization behavior a bit.",
+    "normalize": true
+  },
+
+  {
+    "input_template": { "base": "verylong ", "repeat": 2000 },
+    "normalize": true,
+    "truncate": true,
+    "truncation_direction": "Right"
+  },
+
+  { "input": "Short again to mix lengths.", "normalize": true },
+
+  { "input": "This one tests truncate=false on short text.", "normalize": true, "truncate": false },
+
+  { "input": "Final sample with non-English: 這是一個中文句子。", "normalize": true }
+]

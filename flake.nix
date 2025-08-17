@@ -52,6 +52,7 @@
             clippy
             rust-analyzer
             bruno-cli
+            k6
           ];
 
           env = {
