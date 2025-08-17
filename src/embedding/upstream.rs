@@ -10,9 +10,19 @@ pub struct Upstream {
     http_client: HttpClient,
 }
 
-#[derive(Serialize)]
+#[derive(Debug, Deserialize, Serialize)]
+pub enum TruncationDirection {
+    Left,
+    Right,
+}
+
+#[derive(Debug, Serialize)]
 pub struct EmbedUpstreamRequest {
     pub inputs: String,
+    pub normalize: bool,
+    pub prompt_name: Option<String>,
+    pub truncate: bool,
+    pub truncation_direction: TruncationDirection,
 }
 
 #[derive(Deserialize)]

@@ -199,4 +199,4 @@ args = ["run", "--env", "dotenv"]
 [tasks.run-external]
 description = "Run external service to which proxy to"
 env = { volume = "${PWD}/.huggingface" }
-script = "docker run --rm -it -v ${volume}:/data -p 8080:80 --pull always ghcr.io/huggingface/text-embeddings-inference:cpu-latest --model-id nomic-ai/nomic-embed-text-v1.5"
+script = "docker run --rm -v ${volume}:/data -p 8080:80 ghcr.io/huggingface/text-embeddings-inference:cpu-latest --model-id nomic-ai/nomic-embed-text-v1.5"

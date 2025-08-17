@@ -1,5 +1,6 @@
 use crate::embedding::{
-    EmbedError, EmbedUpstreamRequest, EmbedUpstreamResponse, UpstreamErrorResponse,
+    EmbedError, EmbedUpstreamRequest, EmbedUpstreamResponse, TruncationDirection,
+    UpstreamErrorResponse,
 };
 use crate::http::error::ApiError;
 use crate::http::extractors::Json;
@@ -11,7 +12,10 @@ use serde::{Deserialize, Serialize};
 #[derive(Debug, Deserialize, Serialize)]
 pub struct EmbedRequest {
     pub input: String,
-    // TODO: add other parameters
+    pub normalize: Option<bool>,
+    pub prompt_name: Option<String>,
+    pub truncate: Option<bool>,
+    pub truncation_direction: Option<TruncationDirection>,
 }
 
 #[derive(Debug, Serialize)]
@@ -30,6 +34,12 @@ pub async fn embed(
 async fn handler(state: AppState, payload: EmbedRequest) -> Result<EmbedResponse, EmbedError> {
     let upstream_request = EmbedUpstreamRequest {
         inputs: payload.input,
+        normalize: payload.normalize.unwrap_or(true),
+        prompt_name: payload.prompt_name,
+        truncate: payload.truncate.unwrap_or(false),
+        truncation_direction: payload
+            .truncation_direction
+            .unwrap_or(TruncationDirection::Right),
     };
 
     let response = state.embedding.upstream.embed(&upstream_request).await?;
