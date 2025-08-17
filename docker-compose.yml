@@ -1,0 +1,30 @@
+services:
+  text-embeddings-inference:
+    image: ghcr.io/huggingface/text-embeddings-inference:cpu-latest
+    ports:
+      - "8080:80"
+    command: --model-id nomic-ai/nomic-embed-text-v1.5
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+  batch-proxy:
+    build: .
+    ports:
+      - "3000:3000"
+    environment:
+      - RUST_LOG=info,challenge_batch_proxy=trace
+      - BIND_HOST=0.0.0.0:3000
+      - EMBEDDING_SERVICE_URL=http://text-embeddings-inference:80
+      - EMBEDDING_BATCH_DURATION_MS=200
+      - EMBEDDING_BATCH_SIZE=20
+      - EMBEDDING_USE_BATCH=true
+    depends_on:
+      text-embeddings-inference:
+        condition: service_healthy
+    volumes:
+      - .:/app
+    working_dir: /app
