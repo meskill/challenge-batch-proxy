@@ -46,8 +46,9 @@
             pkg-config
             cargo-deny
             cargo-edit
-            cargo-watch
+            bacon
             cargo-make
+            cargo-nextest
             cargo-audit
             clippy
             rust-analyzer

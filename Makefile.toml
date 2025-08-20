@@ -1,3 +1,6 @@
+[config]
+default_to_workspace = false
+
 [env]
 CARGO_MAKE_EXTEND_WORKSPACE_MAKEFILE = true
 
@@ -62,9 +65,14 @@ command = "reset"
 [tasks.check]
 description = "Run cargo check"
 command = "cargo"
-args = ["check"]
+args = ["check", "--workspace"]
 dependencies = ["console-reset"]
 
+[tasks.check-watch]
+description = "Run cargo check in watch mode"
+install_crate = "bacon"
+command = "bacon"
+args = ["check", "--", "--workspace"]
 
 # Run tasks
 [tasks.run]
@@ -75,12 +83,12 @@ args = ["run"]
 dependencies = ["console-reset"]
 
 # Watch and run
-[tasks.watch]
+[tasks.run-watch]
 workspace = false
 description = "Watch files and run the application"
-install_crate = "cargo-watch"
-command = "cargo"
-args = ["watch", "-x", "run"]
+install_crate = "bacon"
+command = "bacon"
+args = ["run-long"]
 
 # Build tasks
 [tasks.build]
@@ -100,15 +108,16 @@ args = ["build", "--release"]
 # Test tasks
 [tasks.test]
 description = "Run all tests"
+install_crate = "cargo-nextest"
 command = "cargo"
-args = ["test"]
+args = ["nextest", "run", "--workspace"]
 dependencies = ["console-reset"]
 
 [tasks.test-watch]
 description = "Run tests in watch mode"
-install_crate = "cargo-watch"
-command = "cargo"
-args = ["watch", "-x", "test"]
+install_crate = "bacon"
+command = "bacon"
+args = ["nextest", "--", "--workspace"]
 
 # ============================================================================
 # CODE QUALITY TASKS
@@ -138,12 +147,12 @@ env = { FIX = "" }
 [tasks.fmt]
 description = "Format code with rustfmt"
 command = "cargo"
-args = ["fmt"]
+args = ["fmt", "--all"]
 
 [tasks.fmt-check]
 description = "Check code formatting (no changes)"
 command = "cargo"
-args = ["fmt", "--", "--check"]
+args = ["fmt", "--all", "--", "--check"]
 
 # Combined linting tasks
 [tasks.lint]
