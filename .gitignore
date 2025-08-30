@@ -5,3 +5,6 @@
 .env
 
 .huggingface
+
+# cargo insta
+*.pending-snap

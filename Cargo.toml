@@ -15,6 +15,14 @@ edition.workspace = true
 authors.workspace = true
 license.workspace = true
 
+[[bin]]
+name = "challenge-batch-proxy"
+path = "src/main.rs"
+
+[lib]
+name = "challenge_batch_proxy"
+path = "src/lib.rs"
+
 [dependencies]
 axum = { version = "0.8.4", features = ["macros"] }
 tokio = { version = "1.47.1", features = ["rt-multi-thread", "macros", "signal"] }
@@ -32,4 +40,12 @@ strum = { version = "0.27.2", features = ["derive"] }
 batch = { path = "./crates/batch" }
 
 [dev-dependencies]
-tower = "0.5.2"
+tokio-test = "0.4.4"
+wiremock = "0.6.5"
+axum-test = "18.0.2"
+insta = { version = "1.43.1", features = ["json"] }
+
+# PERF: optimize runs for insta package
+[profile.dev.package]
+insta.opt-level = 3
+similar.opt-level = 3

@@ -14,6 +14,7 @@ The auto-batching proxy service should resolve this problem by automatically bat
 - **Configurable Parameters**: Adjustable batch size and wait time for optimal performance
 - **High Performance**: Built with Rust and Axum for minimal overhead
 - **Health Monitoring**: Built-in health and readiness endpoints
+- **Testing Support**: Comprehensive test suite included
 - **Comprehensive Metrics**: Detailed performance benchmarking included
 
 ## Quick Start
@@ -173,6 +174,10 @@ cargo make benchmark
   - `config.rs` - Configuration management
   - `main.rs` - Application entry point
 - **`crates/batch/`** - Reusable batching library with generic batching logic
+- **`tests/`** - Integration tests for the service
+  - `status.rs` - Tests for health and ready endpoints
+  - `embed.rs` - Tests for embedding endpoint and batching behavior
+  - `shared.rs` - Shared test utilities and setup
 - **`tests-bruno/`** - Bruno API collections for manual testing and exploration
 - **`benchmarks-k6/`** - K6 load testing scripts and performance reports
 
@@ -185,6 +190,8 @@ cargo make benchmark
 3. **Upstream Call**: Accumulated requests are sent as a single batch to the upstream service
 4. **Response Distribution**: Individual responses are extracted and returned to original requesters
 5. **Parallel Processing**: Multiple batches can be processed concurrently
+
+_To get better understanding of the batching behavior, you can refer to the test cases in the `tests/embed.rs` file._
 
 ## Development
 

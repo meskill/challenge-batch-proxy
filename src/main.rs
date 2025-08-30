@@ -1,15 +1,9 @@
-mod config;
-mod embedding;
-mod error;
-mod http;
-mod state;
-mod telemetry;
-mod types;
-
-use config::AppConfig;
-use error::InitializationError;
-use state::AppState;
 use std::net::SocketAddr;
+
+use challenge_batch_proxy::config::AppConfig;
+use challenge_batch_proxy::error::InitializationError;
+use challenge_batch_proxy::state::AppState;
+use challenge_batch_proxy::{http, telemetry};
 
 #[tokio::main]
 async fn main() {

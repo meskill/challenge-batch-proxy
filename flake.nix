@@ -50,6 +50,7 @@
             cargo-make
             cargo-nextest
             cargo-audit
+            cargo-insta
             clippy
             rust-analyzer
             bruno-cli
