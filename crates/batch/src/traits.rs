@@ -24,7 +24,7 @@ pub trait GroupBatchable {
     /// Represents a single task input before grouping
     type Input: Send + 'static;
     /// Represents [`Batchable`] entity for the group
-    type Batch: Batchable;
+    type Batch: Batchable + Clone;
 
     /// Get the group key from the whole input.
     /// The batches will be grouped together based on this key.

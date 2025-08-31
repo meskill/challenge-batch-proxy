@@ -57,7 +57,7 @@ impl<T: Batchable> Batcher<T, Uninitialized<T>> {
     }
 }
 
-impl<T: Batchable> Batcher<T, Uninitialized<T>> {
+impl<T: Batchable + Clone> Batcher<T, Uninitialized<T>> {
     /// Spawn the Batcher so it can run tasks
     pub fn spawn(self) -> Batcher<T, Spawned<T>> {
         let (tx, mut rx) = mpsc::channel(self.max_batch_size);
@@ -80,24 +80,31 @@ impl<T: Batchable> Batcher<T, Uninitialized<T>> {
 
                         tracing::debug!("Processing batch of {} inputs", inputs.len());
 
-                        let result = batched.batch(std::mem::take(&mut inputs)).await;
+                        let batched = batched.clone();
+                        let inputs = std::mem::take(&mut inputs);
+                        let notifiers = std::mem::take(&mut notifiers);
 
-                        match result {
-                            Ok(outputs) => {
-                                for (output, notifier) in outputs.into_iter().zip(std::mem::take(&mut notifiers)) {
-                                    if let Err(_output) = notifier.send(Ok(output)) {
-                                        tracing::warn!("Failed to send response, receiver dropped");
+                        tokio::spawn(async move {
+                            let result = batched.batch(inputs).await;
+
+                            match result {
+                                Ok(outputs) => {
+                                    for (output, notifier) in outputs.into_iter().zip(notifiers) {
+                                        if let Err(_output) = notifier.send(Ok(output)) {
+                                            tracing::warn!("Failed to send response, receiver dropped");
+                                        }
                                     }
-                                }
-                            },
-                            Err(error) => {
-                                for notifier in std::mem::take(&mut notifiers) {
-                                    if let Err(_err) = notifier.send(Err(error.clone())) {
-                                        tracing::warn!("Failed to send error response, receiver dropped");
+                                },
+                                Err(error) => {
+                                    for notifier in notifiers {
+                                        if let Err(_err) = notifier.send(Err(error.clone())) {
+                                            tracing::warn!("Failed to send error response, receiver dropped");
+                                        }
                                     }
-                                }
-                            },
-                        }
+                                },
+                            }
+                        });
+
                     }
                     job = rx.recv(), if accept_new => {
                         let Some((input, send_response)) = job else {
@@ -133,7 +140,7 @@ impl<T: Batchable> Batcher<T, Uninitialized<T>> {
     }
 }
 
-impl<T: Batchable> Batcher<T, Spawned<T>> {
+impl<T: Batchable + Clone> Batcher<T, Spawned<T>> {
     pub async fn run(&self, input: T::Input) -> Message<T> {
         let (tx, rx) = oneshot::channel();
 
