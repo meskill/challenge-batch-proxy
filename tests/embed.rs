@@ -93,7 +93,7 @@ mod upstream_error {
 
         let test_app = TestApp::new(&mock_server);
 
-        let payload = EmbedRequest::new("Invalid input that causes error");
+        let payload = EmbedRequest::from("Invalid input that causes error");
 
         let response = test_app.server.post("/embed").json(&payload).await;
 
@@ -125,7 +125,7 @@ mod upstream_error {
 
         let test_app = TestApp::new(&mock_server);
 
-        let payload = EmbedRequest::new("Invalid input that causes error");
+        let payload = EmbedRequest::from("Invalid input that causes error");
 
         let response = test_app.server.post("/embed").json(&payload).await;
 
@@ -162,7 +162,7 @@ mod batch_enabled {
 
         let test_app = TestApp::with_config(app_config(&mock_server));
 
-        let payload = EmbedRequest::new("Hello, world!");
+        let payload = EmbedRequest::from("Hello, world!");
 
         let response = test_app.server.post("/embed").json(&payload).await;
 
@@ -194,15 +194,15 @@ mod batch_enabled {
             test_app
                 .server
                 .post("/embed")
-                .json(&EmbedRequest::new("test1")),
+                .json(&EmbedRequest::from("test1")),
             test_app
                 .server
                 .post("/embed")
-                .json(&EmbedRequest::new("test2")),
+                .json(&EmbedRequest::from("test2")),
             test_app
                 .server
                 .post("/embed")
-                .json(&EmbedRequest::new("test3")),
+                .json(&EmbedRequest::from("test3")),
         );
 
         // the execution time should be very close for batching duration
@@ -244,19 +244,19 @@ mod batch_enabled {
             test_app
                 .server
                 .post("/embed")
-                .json(&EmbedRequest::new("test1")),
+                .json(&EmbedRequest::from("test1")),
             test_app
                 .server
                 .post("/embed")
-                .json(&EmbedRequest::new("test2")),
+                .json(&EmbedRequest::from("test2")),
             test_app
                 .server
                 .post("/embed")
-                .json(&EmbedRequest::new("test3")),
+                .json(&EmbedRequest::from("test3")),
             test_app
                 .server
                 .post("/embed")
-                .json(&EmbedRequest::new("test4")),
+                .json(&EmbedRequest::from("test4")),
         );
 
         // reaching the batch size should trigger request immediately
@@ -323,19 +323,19 @@ mod batch_enabled {
             test_app
                 .server
                 .post("/embed")
-                .json(&to_left(EmbedRequest::new("test1"))),
+                .json(&to_left(EmbedRequest::from("test1"))),
             test_app
                 .server
                 .post("/embed")
-                .json(&to_right(EmbedRequest::new("test2"))),
+                .json(&to_right(EmbedRequest::from("test2"))),
             test_app
                 .server
                 .post("/embed")
-                .json(&to_left(EmbedRequest::new("test3"))),
+                .json(&to_left(EmbedRequest::from("test3"))),
             test_app
                 .server
                 .post("/embed")
-                .json(&to_right(EmbedRequest::new("test4"))),
+                .json(&to_right(EmbedRequest::from("test4"))),
         );
 
         // reaching the batch size should trigger request immediately
@@ -356,10 +356,71 @@ mod batch_enabled {
         assert_eq!(body3, vec![0.7, 0.8, 0.9]);
         assert_eq!(body4, vec![0.3, 0.5, 0.7]);
     }
+
+    #[tokio::test]
+    async fn test_requests_with_multiple_inputs() {
+        let mock_server = EmbeddingMockServer::start().await;
+
+        Mock::given(method("POST"))
+            .and(path("/embed"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(json!([
+                // first
+                [0.1, 0.2, 0.3],
+                [0.4, 0.5, 0.6],
+                [0.7, 0.8, 0.9],
+                // second
+                [0.2, 0.4, 0.6],
+                [0.3, 0.5, 0.7],
+                // third
+                [0.3, 0.2, 0.1]
+            ])))
+            .expect(1)
+            .mount(&mock_server.server)
+            .await;
+
+        let test_app = TestApp::with_config(app_config(&mock_server));
+
+        let start_time = Instant::now();
+
+        let (first, second, third) = tokio::join!(
+            test_app
+                .server
+                .post("/embed")
+                .json(&EmbedRequest::from(vec!["test1", "test2", "test3"])),
+            test_app
+                .server
+                .post("/embed")
+                .json(&EmbedRequest::from(vec!["test4", "test5"])),
+            test_app
+                .server
+                .post("/embed")
+                .json(&EmbedRequest::from("test6")),
+        );
+
+        assert_elapsed_time_difference!(start_time, TEST_DEFAULT_BATCH_DURATION_MS);
+
+        first.assert_status_ok();
+        second.assert_status_ok();
+        third.assert_status_ok();
+
+        let body1: Vec<Vec<f32>> = first.json();
+        let body2: Vec<Vec<f32>> = second.json();
+        let body3: Vec<f32> = third.json();
+
+        assert_eq!(
+            body1,
+            vec![
+                vec![0.1, 0.2, 0.3],
+                vec![0.4, 0.5, 0.6],
+                vec![0.7, 0.8, 0.9]
+            ]
+        );
+        assert_eq!(body2, vec![vec![0.2, 0.4, 0.6], vec![0.3, 0.5, 0.7]]);
+        assert_eq!(body3, vec![0.3, 0.2, 0.1]);
+    }
 }
 
 mod batch_disabled {
-
     use wiremock::matchers::body_partial_json;
 
     use super::shared::app_config_no_batch as app_config;
@@ -405,15 +466,15 @@ mod batch_disabled {
             test_app
                 .server
                 .post("/embed")
-                .json(&EmbedRequest::new("test1")),
+                .json(&EmbedRequest::from("test1")),
             test_app
                 .server
                 .post("/embed")
-                .json(&EmbedRequest::new("test2")),
+                .json(&EmbedRequest::from("test2")),
             test_app
                 .server
                 .post("/embed")
-                .json(&EmbedRequest::new("test3")),
+                .json(&EmbedRequest::from("test3")),
         );
 
         first.assert_status_ok();

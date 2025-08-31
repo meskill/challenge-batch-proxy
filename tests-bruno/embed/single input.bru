@@ -1,5 +1,5 @@
 meta {
-  name: single request
+  name: single input
   type: http
   seq: 1
 }
@@ -16,10 +16,6 @@ body:json {
   }
 }
 
-settings {
-  encodeUrl: true
-}
-
 tests {
   test("success response", function () {
     expect(res.getStatus()).to.equal(200);
@@ -28,4 +24,8 @@ tests {
       return arr.every(item => typeof item === 'number' && !isNaN(item));
     });
   });
+}
+
+settings {
+  encodeUrl: true
 }

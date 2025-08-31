@@ -5,7 +5,7 @@ use batch::GroupBatcher;
 use crate::embedding::batch::EmbeddingBatch;
 use crate::embedding::config::EmbeddingConfig;
 use crate::embedding::upstream::Upstream;
-use crate::embedding::{EmbedError, EmbedRequest, EmbedResponse, EmbedUpstreamRequest};
+use crate::embedding::{EmbedError, EmbedRequest, EmbedResponse, EmbedUpstreamRequest, OneOrMany};
 use crate::http::HttpClient;
 
 #[derive(Clone)]
@@ -39,16 +39,16 @@ impl EmbeddingState {
             Ok(EmbedResponse::from(embedding))
         } else {
             let upstream_request = EmbedUpstreamRequest {
-                inputs: vec![request.input],
+                inputs: request.input.into_vec(),
                 normalize: request.normalize,
                 prompt_name: request.prompt_name,
                 truncate: request.truncate,
                 truncation_direction: request.truncation_direction,
             };
 
-            let mut response = self.upstream.embed(&upstream_request).await?;
+            let response = self.upstream.embed(&upstream_request).await?;
 
-            Ok(EmbedResponse::from(response.0.remove(0)))
+            Ok(EmbedResponse::from(OneOrMany::from(response.0)))
         }
     }
 }

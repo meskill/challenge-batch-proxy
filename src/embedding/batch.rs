@@ -1,7 +1,7 @@
 use batch::{Batchable, GroupBatchable};
 
 use crate::embedding::upstream::Upstream;
-use crate::embedding::{EmbedError, EmbedRequest, EmbedUpstreamRequest};
+use crate::embedding::{EmbedError, EmbedInput, EmbedRequest, EmbedUpstreamRequest, OneOrMany};
 use crate::types::embedding::Embedding;
 use crate::types::truncation::TruncationDirection;
 
@@ -25,9 +25,6 @@ pub(super) struct EmbeddingGroupKey {
     truncation_direction: TruncationDirection,
 }
 
-// this represent a single input
-pub(super) struct BatchInput(String);
-
 impl From<&EmbedRequest> for EmbeddingGroupKey {
     fn from(value: &EmbedRequest) -> Self {
         Self {
@@ -46,24 +43,34 @@ impl EmbeddingBatch {
 }
 
 impl Batchable for EmbeddingGroupBatch {
-    type Input = BatchInput;
+    type Input = EmbedInput;
 
-    type Output = Embedding;
+    type Output = OneOrMany<Embedding>;
 
     type Error = EmbedError;
 
     async fn batch(&self, input: Vec<Self::Input>) -> Result<Vec<Self::Output>, Self::Error> {
+        let sizes: Vec<_> = input.iter().map(|x| x.len()).collect();
+
         let request = EmbedUpstreamRequest {
-            inputs: input.into_iter().map(|x| x.0).collect(),
+            inputs: input.into_iter().flat_map(|x| x.into_vec()).collect(),
             normalize: self.group_key.normalize,
             prompt_name: self.group_key.prompt_name.clone(),
             truncate: self.group_key.truncate,
             truncation_direction: self.group_key.truncation_direction,
         };
 
-        let response = self.upstream.embed(&request).await?;
+        let mut response = self.upstream.embed(&request).await?;
 
-        Ok(response.0)
+        let mut responses = Vec::with_capacity(sizes.len());
+
+        for size in sizes {
+            let chunk: Vec<Embedding> = response.0.drain(0..size).collect();
+
+            responses.push(OneOrMany::from(chunk));
+        }
+
+        Ok(responses)
     }
 }
 
@@ -86,6 +93,6 @@ impl GroupBatchable for EmbeddingBatch {
     }
 
     fn input_to_batch_input(&self, input: Self::Input) -> <Self::Batch as batch::Batchable>::Input {
-        BatchInput(input.input)
+        input.input
     }
 }

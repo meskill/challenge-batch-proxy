@@ -1,0 +1,31 @@
+meta {
+  name: multiple input
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{app}}/embed
+  body: json
+  auth: inherit
+}
+
+body:json {
+  {
+    "input": ["Where am i?", "Test string", "Test input"]
+  }
+}
+
+tests {
+  test("success response", function () {
+    expect(res.getStatus()).to.equal(200);
+    expect(res.getBody()).to.be.an('array');
+    expect(res.getBody()).to.satisfy(function(arr) {
+      return arr.every(arr => Array.isArray(arr) && arr.every(item => typeof item === "number" && !isNaN(item)));
+    });
+  });
+}
+
+settings {
+  encodeUrl: true
+}
