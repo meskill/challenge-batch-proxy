@@ -32,6 +32,7 @@ impl EmbeddingState {
         }
     }
 
+    #[tracing::instrument(skip(self))]
     pub async fn embed(&self, request: EmbedRequest) -> Result<EmbedResponse, EmbedError> {
         if self.use_batch {
             let embedding = self.batcher.run(request).await?;

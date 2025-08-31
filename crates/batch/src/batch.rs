@@ -4,6 +4,7 @@ use std::time::Duration;
 use tokio::select;
 use tokio::sync::mpsc;
 use tokio::sync::oneshot;
+use tracing::Span;
 
 use crate::traits::Batchable;
 
@@ -15,9 +16,12 @@ pub struct Uninitialized<T: Batchable> {
     batched: T,
 }
 
+#[allow(type_alias_bounds)] // we don't need to enforce and check types here, it's just a type alias
+type BatchMessage<T: Batchable> = (T::Input, Span, oneshot::Sender<Message<T>>);
+
 /// Represents spawned batcher state that can accept inputs
 pub struct Spawned<T: Batchable> {
-    tx: mpsc::Sender<(T::Input, oneshot::Sender<Message<T>>)>,
+    tx: mpsc::Sender<BatchMessage<T>>,
 }
 
 /// A batcher that will collect multiple tasks together into batches,
@@ -60,7 +64,7 @@ impl<T: Batchable> Batcher<T, Uninitialized<T>> {
 impl<T: Batchable> Batcher<T, Uninitialized<T>> {
     /// Spawn the Batcher so it can run tasks
     pub fn spawn(self) -> Batcher<T, Spawned<T>> {
-        let (tx, mut rx) = mpsc::channel(self.max_batch_size);
+        let (tx, mut rx) = mpsc::channel::<BatchMessage<T>>(self.max_batch_size);
 
         let max_wait_time = self.max_wait_time;
         let max_batch_size = self.max_batch_size;
@@ -68,6 +72,7 @@ impl<T: Batchable> Batcher<T, Uninitialized<T>> {
 
         tokio::spawn(async move {
             let mut inputs = Vec::new();
+            let mut spans = Vec::new();
             let mut notifiers: Vec<oneshot::Sender<Message<T>>> = Vec::new();
 
             let mut interval = tokio::time::interval(max_wait_time);
@@ -78,20 +83,34 @@ impl<T: Batchable> Batcher<T, Uninitialized<T>> {
                     _ = interval.tick(), if !inputs.is_empty() => {
                         accept_new = true;
 
+                        let span = tracing::debug_span!("batch_process", batch_size = inputs.len());
+                        let spans = std::mem::take(&mut spans);
+
+                        // define causality relationship of batch task with it's caller
+                        for cause_span in &spans {
+                            span.follows_from(cause_span);
+                        }
+
+                        let _span = span.enter();
+
                         tracing::debug!("Processing batch of {} inputs", inputs.len());
 
                         let result = batched.batch(std::mem::take(&mut inputs)).await;
 
+                        let notifiers = std::mem::take(&mut notifiers);
+
                         match result {
                             Ok(outputs) => {
-                                for (output, notifier) in outputs.into_iter().zip(std::mem::take(&mut notifiers)) {
+                                for (output, notifier) in outputs.into_iter().zip(notifiers) {
                                     if let Err(_output) = notifier.send(Ok(output)) {
                                         tracing::warn!("Failed to send response, receiver dropped");
                                     }
                                 }
                             },
                             Err(error) => {
-                                for notifier in std::mem::take(&mut notifiers) {
+                                tracing::error!(?error, "Batch processing failed, notify all waiters");
+
+                                for notifier in notifiers {
                                     if let Err(_err) = notifier.send(Err(error.clone())) {
                                         tracing::warn!("Failed to send error response, receiver dropped");
                                     }
@@ -100,7 +119,9 @@ impl<T: Batchable> Batcher<T, Uninitialized<T>> {
                         }
                     }
                     job = rx.recv(), if accept_new => {
-                        let Some((input, send_response)) = job else {
+                        tracing::debug!("Received new job");
+
+                        let Some((input, span, send_response)) = job else {
                             tracing::debug!("Channel closed, exiting the loop");
                             break;
                         };
@@ -111,13 +132,18 @@ impl<T: Batchable> Batcher<T, Uninitialized<T>> {
                         }
 
                         inputs.push(input);
+                        spans.push(span.clone());
                         notifiers.push(send_response);
+
+                        let _span = span.enter();
 
                         if inputs.len() >= max_batch_size {
                             tracing::debug!("Batch size reached, processing batch of {} inputs", inputs.len());
                             // force interval to tick immediately
                             interval.reset_immediately();
                             accept_new = false;
+                        } else {
+                            tracing::debug!("Put the current task on hold, until batch is filled");
                         }
                     }
                 }
@@ -137,9 +163,11 @@ impl<T: Batchable> Batcher<T, Spawned<T>> {
     pub async fn run(&self, input: T::Input) -> Message<T> {
         let (tx, rx) = oneshot::channel();
 
+        let span = tracing::debug_span!("batch_run");
+
         self.status
             .tx
-            .send((input, tx))
+            .send((input, span, tx))
             .await
             .expect("Batcher dropped before finishing the job");
 

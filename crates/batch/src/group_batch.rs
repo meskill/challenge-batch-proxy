@@ -24,6 +24,7 @@ impl<T: GroupBatchable> GroupBatcher<T> {
         }
     }
 
+    #[tracing::instrument(skip_all)]
     pub async fn run(&self, input: T::Input) -> Message<T::Batch> {
         let group_key = self.batched.group_key(&input);
 

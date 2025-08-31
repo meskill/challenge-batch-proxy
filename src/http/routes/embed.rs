@@ -14,6 +14,7 @@ pub async fn embed(
     }
 }
 
+#[tracing::instrument(skip_all)]
 async fn handler(state: AppState, payload: EmbedRequest) -> Result<EmbedResponse, EmbedError> {
     state.embedding.embed(payload).await
 }

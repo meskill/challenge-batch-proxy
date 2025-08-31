@@ -1,3 +1,4 @@
+use std::fmt::Debug;
 use std::hash::Hash;
 
 /// Wrapper for batchable entities that could resolve multiple tasks in single batch
@@ -7,7 +8,7 @@ pub trait Batchable: Send + 'static {
     /// Represents a single task output
     type Output: Send + 'static;
     /// Represents possible errors when processing a batch
-    type Error: Clone + Send + 'static;
+    type Error: Clone + Debug + Send + 'static;
 
     /// Execute multiple tasks as single batch
     fn batch(

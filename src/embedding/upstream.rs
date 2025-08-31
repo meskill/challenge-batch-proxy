@@ -37,6 +37,7 @@ impl Upstream {
         self.execute_get(&url).await
     }
 
+    #[tracing::instrument(skip(self))]
     pub async fn embed(
         &self,
         request: &EmbedUpstreamRequest,
